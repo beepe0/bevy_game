@@ -1,6 +1,6 @@
 use bevy::color::{Color, LinearRgba};
 
-pub struct ColorPalette;
+pub(crate) struct ColorPalette;
 
 impl ColorPalette {
     pub const       RED:Color = Color::LinearRgba(LinearRgba {red: 1.000, green: 0.000, blue: 0.000, alpha: 1f32});   //rgb01(1.000, 0.000, 0.000)
