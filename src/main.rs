@@ -10,6 +10,6 @@ pub fn main() {
     .add_plugins(inspector::plugin)
     .add_plugins(game::player::plugin)
     .add_plugins(game::enemy::plugin)
-    .add_plugins(game::bullet::plugin)
+    .add_plugins(game::weapon::plugin)
     .run();
 }
