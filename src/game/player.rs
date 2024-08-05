@@ -1,5 +1,5 @@
 pub(crate) mod prelude {
-    pub(crate) use super::PlayerSprite;
+    pub(crate) use super::{Player, PlayerSprite};
 }
 
 use crate::prelude::*;
@@ -27,15 +27,15 @@ pub fn plugin(
 fn startup(
     mut cmd: Commands,
 ) {
-    let player_component = Player {
+    let player_entity = cmd.spawn(Player {
         speed: 100f32, 
         direction_y: Vec3::ZERO, 
         keyboard_direction: Vec3::ZERO,
         position: Vec3::ZERO,
         rotation: Vec3::ZERO
-    };
+    }).id();
 
-    let weapon_component = weapon::Pistol::init(&mut cmd, Vec3::ZERO, Vec3::ZERO);
+    let weapon_entity = weapon::Weapon::init(&mut cmd, super::weapon::WeaponType::Pistol).unwrap();
 
     let camera_entity = cmd.spawn(
         Camera2dBundle {
@@ -43,7 +43,7 @@ fn startup(
                 clear_color: ClearColorConfig::Custom(color_palette::ColorPalette::DARKGRAY), ..Default::default() 
             }, 
             ..Default::default()},
-        ).id();
+    ).id();
 
     let sprite_entity = cmd.spawn((
         SpriteBundle {
@@ -51,18 +51,20 @@ fn startup(
                 scale: Vec3 {x: 1f32, y: 1f32, z: 1f32},
                 ..Default::default()
             },
-          sprite: Sprite {
+            sprite: Sprite {
                 color: color_palette::ColorPalette::ORANGE, 
                 custom_size: Some(Vec2::ONE * 20f32), 
                 ..Default::default()},
             ..Default::default()
         },
-        )).insert(PlayerSprite).id();
+        PlayerSprite,
+        Name::new("Sprite")
+    )).id();
 
     let transform_bundle = (GlobalTransform::default(), Transform::default(), InheritedVisibility::default());
 
-    cmd.spawn(player_component)
-    .add_child(weapon_component)
+    cmd.entity(player_entity)
+    .add_child(weapon_entity)
     .add_child(camera_entity)
     .add_child(sprite_entity)
     .insert(transform_bundle)
@@ -87,38 +89,18 @@ fn update_position(
     if keyboard.pressed(KeyCode::KeyA) { player.keyboard_direction.x = -1f32; }
 } 
 
-// fn update_rotation(
-//     mut query_parent: Query<&mut Player>, 
-//     mut query_child_sprite: Query<&mut Transform, With<PlayerSprite>>, 
-//     query_child_camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>, 
-//     window: Query<&Window>
-// ) {
-//     let mut player = query_parent.single_mut();
-//     let mut transform = query_child_sprite.single_mut();
-
-//     let win = window.single();
-//     let (cam, cam_transform) = query_child_camera.single();
-
-//     if let Some(mouse_position) = win.cursor_position().and_then(|cursor| cam.viewport_to_world_2d(cam_transform, cursor)) {
-//         let v = (mouse_position - transform.translation.xy()).normalize();
-//         let angle = v.normalize().to_angle();
-//         player.direction_y = Vec3 {x: v.x, y: v.y, z: 0f32};
-//         transform.rotation = Quat::from_axis_angle(Vec3::Z, angle);
-//     }
-// }
-
 fn update_shooting(
     mut cmd: Commands, 
-    query_child: Query<&mut Transform, With<PlayerSprite>>, 
-    query_parent: Query<&mut Player>, 
+    query_weapon_muzzle: Query<&GlobalTransform, With<weapon::WeaponMuzzle>>,
+    query_weapom: Query<&weapon::Weapon>,
     mouse_button: Res<ButtonInput<MouseButton>>
 ) {
-    let transform = query_child.single();
-    let player = query_parent.single();
+    let weapon_muzzle = query_weapon_muzzle.single();
+    let weapon = query_weapom.single();
 
     if mouse_button.just_pressed(MouseButton::Right) {  
-        weapon::MachinegunAmmunition::init(&mut cmd, transform.translation, player.direction_y);
+        weapon::MachinegunAmmunition::init(&mut cmd, weapon_muzzle.translation(), weapon.direction);
     } else if mouse_button.just_pressed(MouseButton::Left) {
-        weapon::PistolAmmunition::init(&mut cmd, transform.translation, player.direction_y);
+        weapon::PistolAmmunition::init(&mut cmd, weapon_muzzle.translation(), weapon.direction);
     }
 }

@@ -1,8 +1,6 @@
 pub(crate) mod prelude {
-    pub(crate) use super::{Weapon, Pistol, PistolAmmunition, MachinegunAmmunition};
+    pub(crate) use super::{Weapon, WeaponHolder, WeaponMuzzle, PistolAmmunition, MachinegunAmmunition};
 }
-
-use bevy::math::VectorSpace;
 
 use crate::prelude::*;
 
@@ -134,45 +132,100 @@ impl MachinegunAmmunition {
         }
     }
 }
+#[derive(Component)]
+pub(crate) struct WeaponHolder;
+
+#[derive(Component)]
+pub(crate) struct WeaponMuzzle;
 
 #[derive(Reflect, Component)]
-pub(crate) enum Weapon {
-    Pistol(Pistol),    
+pub(crate) struct Weapon {
+    pub(crate) weapon_type: WeaponType,
+    pub(crate) direction: Vec3,    
 }
 
 #[derive(Reflect)]
-pub(crate) struct Pistol;
+pub(crate) enum WeaponType {
+    Pistol,
+    None,
+}
 
-impl Pistol {
+impl Weapon {
     pub(crate) fn init(
         cmd: &mut Commands,
-        position: Vec3,
-        direction: Vec3
-    ) -> Entity{
-        let entity = cmd.spawn(()).id();
-        let sprite_bundle = SpriteBundle {
-            transform: Transform {
-                translation: position,
-                rotation: Quat::from_axis_angle(Vec3::Z, direction.xy().to_angle()),
-                scale: Vec3 {x: 40f32, y: 10f32, z: 0f32}
+        weapon_type: WeaponType
+    ) -> Option<Entity>{
+        match weapon_type {
+            WeaponType::Pistol => {
+                let weapon_holder_entity = cmd.spawn((
+                    weapon::WeaponHolder, 
+                    GlobalTransform::default(), 
+                    Transform::default(), 
+                    InheritedVisibility::default(), 
+                    Name::new("WeaponHolder")
+                )).id();
+                
+                let weapon_muzzle_entity = cmd.spawn((
+                    WeaponMuzzle, 
+                    GlobalTransform::default(), 
+                    Transform {
+                        translation: Vec3 {x: 1f32, y: 0f32, z: 0f32},
+                        ..Transform::default()
+                    }, 
+                    Name::new("WeaponMuzzle")
+                )).id();
+                
+                let weapon_component = Weapon { 
+                    weapon_type: WeaponType::Pistol, 
+                    direction: Vec3::X,
+                };
+                
+                let sprite_bundle = SpriteBundle {
+                    transform: Transform {
+                        translation: Vec3 {x: 30f32, y: 0f32, z: 0f32},
+                        rotation: Quat::from_axis_angle(Vec3::Z, Vec2::X.to_angle()),
+                        scale: Vec3 {x: 40f32, y: 10f32, z: 0f32}
+                    },
+                    sprite: Sprite {
+                        color: color_palette::ColorPalette::GRAY,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                };
+            
+                let weapon_entity = cmd.spawn(weapon_component)
+                    .add_child(weapon_muzzle_entity)
+                    .insert(sprite_bundle)
+                    .insert(Name::new("Pistol"))
+                .id();
+
+                return Some(cmd.entity(weapon_holder_entity).add_child(weapon_entity).id());
             },
-            sprite: Sprite {
-                color: color_palette::ColorPalette::GRAY,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-        let weapon = Weapon::Pistol(Pistol);
-        cmd.entity(entity).insert(sprite_bundle).insert(weapon).insert(Name::new("Pistol"));
-        entity
+            WeaponType::None => {return None;},
+        }
     }
 
-    pub(crate) fn update_position() {
-
+    pub(crate) fn update_position(&mut self,
+        transform: &mut Transform,
+        transform_player: &mut Transform
+    ) {
+        transform.translation = transform_player.translation;
     }
 
-    pub(crate) fn update_rotation() {
+    pub(crate) fn update_rotation(&mut self,
+        weapon_transform: &mut Transform,
+        player_transform: &Transform,
+        canvas: &Window,
+        camera: &Camera, 
+        camera_transform: &GlobalTransform
+    ) {
+        if let Some(mouse_position) = canvas.cursor_position().and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor)) {
+            let direction = (mouse_position - player_transform.translation.xy()).normalize();
+            let angle = direction.to_angle();
 
+            self.direction = Vec3 {x: direction.x, y: direction.y, z: 0f32};
+            weapon_transform.rotation = Quat::from_axis_angle(Vec3::Z, angle);
+        }
     }
 
     fn make_shoot(&mut self,
@@ -205,13 +258,27 @@ fn update_ammunition_position(
 }
 
 fn update_weapon_position(
-
+    mut query_weapon_holder: Query<&mut Transform, With<WeaponHolder>>,
+    mut query_weapon: Query<&mut Weapon>,
+    mut query_player: Query<&mut Transform, (With<player::PlayerSprite>, Without<WeaponHolder>)>
 ) {
+    let mut weapon_holder = query_weapon_holder.single_mut();
+    let mut weapon = query_weapon.single_mut();
+    let mut player = query_player.single_mut();
 
+    weapon.update_position(weapon_holder.as_mut(), player.as_mut())
 }
 
 fn update_weapon_rotation(
-
+    mut query_weapon: Query<(&mut Transform, &mut Weapon)>, 
+    mut query_player: Query<&mut Transform, (With<player::PlayerSprite>, Without<Weapon>)>, 
+    query_player_camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>, 
+    window: Query<&Window>
 ) {
+    let mut weapon = query_weapon.single_mut();
+    let player = query_player.single_mut();
+    let player_camera = query_player_camera.single();
+    let win = window.single();
 
+    weapon.1.update_rotation(weapon.0.as_mut(), player.as_ref(), win, player_camera.0, player_camera.1);
 }

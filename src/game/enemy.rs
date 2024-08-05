@@ -24,7 +24,7 @@ pub struct Enemies {
 
 impl Default for Enemies {
     fn default() -> Self {
-        Self { current_number: 0, max_number: 1, timer_spawning: Timer::new(Duration::from_secs(1), TimerMode::Repeating), speed: 50f32, distance: 42f32, max_range_spawn: I64Vec2 {x: -80, y: 50}, min_range_spawn: I64Vec2 {x: -50, y: 20}, health: 100}
+        Self { current_number: 0, max_number: 0, timer_spawning: Timer::new(Duration::from_secs(1), TimerMode::Repeating), speed: 50f32, distance: 42f32, max_range_spawn: I64Vec2 {x: -80, y: 50}, min_range_spawn: I64Vec2 {x: -50, y: 20}, health: 100}
     }
 }
 
