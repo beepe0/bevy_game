@@ -1,61 +1,69 @@
 pub(crate) mod prelude {
-    pub(crate) use super::{Weapon, WeaponHolder, WeaponMuzzle, PistolAmmunition, MachinegunAmmunition};
+    pub(crate) use super::{Weapon, WeaponType, WeaponProjectileType, WeaponHolder, WeaponMuzzle, Pistol, Machinegun, PistolProjectile, MachinegunProjectile};
 }
 
 use crate::prelude::*;
 
-// pub(crate) trait FirearmsWeapon {
-//     fn make_shoot();
-//     fn take_reload();
-// }
-
-// pub(crate) trait MeleeWeapon {
-//     fn make_stroke();
-// }
-
-// pub(crate) trait ProjectileWeapon {
-//     fn make_throw();
-// }
 #[derive(Reflect, Component)]
-pub(crate) enum WeaponAmmunition {
-    PistolAmmunition(PistolAmmunition),    
-    MachinegunAmmunition(MachinegunAmmunition)
+pub(crate) struct WeaponProjectile {
+    weapon_projectile_type: WeaponProjectileType
 }
 
 #[derive(Reflect)]
-pub(crate) struct PistolAmmunition {
-    timer_lifetime: Timer,
-    force: f32,
-    direction: Vec3
+pub(crate) enum WeaponProjectileType {
+    PistolProjectile(PistolProjectile),    
+    MachinegunProjectile(MachinegunProjectile)
 }
 
-#[derive(Reflect)]
-pub(crate) struct MachinegunAmmunition {
-    timer_lifetime: Timer,
-    force: f32,
-    direction: Vec3
+#[derive(Clone, Reflect)]
+pub(crate) struct PistolProjectile {
+    pub(crate) timer_lifetime: Timer,
+    pub(crate) force: f32,
+    pub(crate) direction: Vec3
 }
 
-impl WeaponAmmunition {
+#[derive(Clone, Reflect)]
+pub(crate) struct MachinegunProjectile {
+    pub(crate) timer_lifetime: Timer,
+    pub(crate) force: f32,
+    pub(crate) direction: Vec3
+}
+
+impl WeaponProjectile {
     fn update_position(&mut self,
         cmd: &mut Commands,
         transform: &mut Transform,
         time: &Time,
         entity: Entity
     ) {  
-        match self {
-            WeaponAmmunition::PistolAmmunition(ammo) => {ammo.update_position(cmd, transform, time, entity);},
-            WeaponAmmunition::MachinegunAmmunition(ammo) => {ammo.update_position(cmd, transform, time, entity);}
+        match &mut self.weapon_projectile_type {
+            WeaponProjectileType::PistolProjectile(ammo) => {ammo.update_position(cmd, transform, time, entity);},
+            WeaponProjectileType::MachinegunProjectile(ammo) => {ammo.update_position(cmd, transform, time, entity);}
         }
     }
 }
-impl PistolAmmunition {
-    pub(crate) fn init(
+
+impl WeaponProjectileType {
+    fn spawn(&self,
+        cmd: &mut Commands,
+        position: Vec3,
+        direction: Vec3
+    ) {
+        match self {
+            WeaponProjectileType::PistolProjectile(projectile) => {projectile.spawn(cmd, position, direction)}
+            WeaponProjectileType::MachinegunProjectile(projectile) => {projectile.spawn(cmd, position, direction)}
+        }
+    }
+}
+
+impl PistolProjectile {
+    pub(crate) fn spawn(&self,
         cmd: &mut Commands,
         position: Vec3,
         direction: Vec3
     ) {
         let entity = cmd.spawn(()).id();
+
         let sprite_bundle = SpriteBundle {
             transform: Transform {
                 translation: position,
@@ -68,12 +76,15 @@ impl PistolAmmunition {
             },
             ..Default::default()
         };
-        let damage_object = WeaponAmmunition::PistolAmmunition(PistolAmmunition {
-            timer_lifetime: Timer::new(Duration::from_secs(2), TimerMode::Once),
-            force: 300f32,
-            direction: direction
-        });
-        cmd.entity(entity).insert(sprite_bundle).insert(damage_object).insert(Name::new("PistolAmmunition"));
+
+        let mut projectile = self.clone();
+        projectile.direction = direction;
+
+        let weapon_ammunition_component = WeaponProjectile {
+            weapon_projectile_type: WeaponProjectileType::PistolProjectile(projectile)
+        };
+
+        cmd.entity(entity).insert(sprite_bundle).insert(weapon_ammunition_component).insert(Name::new("PistolAmmunition"));
     }
 
     pub(crate) fn update_position(&mut self,
@@ -91,8 +102,8 @@ impl PistolAmmunition {
     }
 }
 
-impl MachinegunAmmunition {
-    pub(crate) fn init(
+impl MachinegunProjectile {
+    pub(crate) fn spawn(&self,
         cmd: &mut Commands,
         position: Vec3,
         direction: Vec3
@@ -110,12 +121,15 @@ impl MachinegunAmmunition {
             },
             ..Default::default()
         };
-        let damage_object = WeaponAmmunition::PistolAmmunition(PistolAmmunition {
-            timer_lifetime: Timer::new(Duration::from_secs(2), TimerMode::Once),
-            force: 600f32,
-            direction: direction
-        });
-        cmd.entity(entity).insert(sprite_bundle).insert(damage_object).insert(Name::new("MachinegunAmmunition"));
+        
+        let mut projectile = self.clone();
+        projectile.direction = direction;
+
+        let weapon_ammunition_component = WeaponProjectile {
+            weapon_projectile_type: WeaponProjectileType::MachinegunProjectile(projectile)
+        };
+
+        cmd.entity(entity).insert(sprite_bundle).insert(weapon_ammunition_component).insert(Name::new("MachinegunAmmunition"));
     }
 
     pub(crate) fn update_position(&mut self,
@@ -132,6 +146,7 @@ impl MachinegunAmmunition {
         }
     }
 }
+
 #[derive(Component)]
 pub(crate) struct WeaponHolder;
 
@@ -146,8 +161,149 @@ pub(crate) struct Weapon {
 
 #[derive(Reflect)]
 pub(crate) enum WeaponType {
-    Pistol,
+    Pistol(Pistol),
+    Machinegun(Machinegun),
     None,
+}
+
+#[derive(Reflect)]
+pub(crate) struct Pistol {
+    pub(crate) weapon_projectile: WeaponProjectileType,
+}
+
+#[derive(Reflect)]
+pub(crate) struct Machinegun { 
+    pub(crate) weapon_projectile: WeaponProjectileType,
+}
+
+impl Pistol {
+    pub(crate) fn spawn(self,
+        cmd: &mut Commands
+    ) -> Entity {
+        let weapon_holder_entity = cmd.spawn((
+            weapon::WeaponHolder, 
+            GlobalTransform::default(), 
+            Transform::default(), 
+            InheritedVisibility::default(), 
+            Name::new("WeaponHolder")
+        )).id();
+        
+        let weapon_muzzle_entity = cmd.spawn((
+            WeaponMuzzle, 
+            GlobalTransform::default(), 
+            Transform {
+                translation: Vec3 {x: 1f32, y: 0f32, z: 0f32},
+                ..Transform::default()
+            }, 
+            Name::new("WeaponMuzzle")
+        )).id();
+        
+        let weapon_component = Weapon { 
+            weapon_type: WeaponType::Pistol(self), 
+            direction: Vec3::X,
+        };
+
+        let sprite_bundle = SpriteBundle {
+            transform: Transform {
+                translation: Vec3 {x: 30f32, y: 0f32, z: 0f32},
+                rotation: Quat::from_axis_angle(Vec3::Z, Vec2::X.to_angle()),
+                scale: Vec3 {x: 40f32, y: 10f32, z: 0f32}
+            },
+            sprite: Sprite {
+                color: color_palette::ColorPalette::GRAY,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+    
+        let weapon_entity = cmd.spawn(weapon_component)
+            .add_child(weapon_muzzle_entity)
+            .insert(sprite_bundle)
+            .insert(Name::new("Pistol"))
+        .id();
+
+        return cmd.entity(weapon_holder_entity).add_child(weapon_entity).id();
+    }
+
+    pub(crate) fn update_position(&mut self,
+        transform: &mut Transform,
+        transform_player: &Transform
+    ) {
+        transform.translation = transform_player.translation;
+    }
+
+    pub(crate) fn shoot(&mut self,
+        cmd: &mut Commands,
+        position: Vec3,
+        direction: Vec3
+    ) {
+        self.weapon_projectile.spawn(cmd, position, direction);
+    }
+}
+
+impl Machinegun {
+    pub(crate) fn spawn(self,
+        cmd: &mut Commands
+    ) -> Entity {
+        let weapon_holder_entity = cmd.spawn((
+            weapon::WeaponHolder, 
+            GlobalTransform::default(), 
+            Transform::default(), 
+            InheritedVisibility::default(), 
+            Name::new("WeaponHolder")
+        )).id();
+        
+        let weapon_muzzle_entity = cmd.spawn((
+            WeaponMuzzle, 
+            GlobalTransform::default(), 
+            Transform {
+                translation: Vec3 {x: 1f32, y: 0f32, z: 0f32},
+                ..Transform::default()
+            }, 
+            Name::new("WeaponMuzzle")
+        )).id();
+        
+        let weapon_component = Weapon { 
+            weapon_type: WeaponType::Machinegun(self), 
+            direction: Vec3::X,
+        };
+        
+        let sprite_bundle = SpriteBundle {
+            transform: Transform {
+                translation: Vec3 {x: 30f32, y: 0f32, z: 0f32},
+                rotation: Quat::from_axis_angle(Vec3::Z, Vec2::X.to_angle()),
+                scale: Vec3 {x: 30f32, y: 20f32, z: 0f32}
+            },
+            sprite: Sprite {
+                color: color_palette::ColorPalette::WHITE,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+    
+        let weapon_entity = cmd.spawn(weapon_component)
+            .add_child(weapon_muzzle_entity)
+            .insert(sprite_bundle)
+            .insert(Name::new("Pistol"))
+        .id();
+
+        return cmd.entity(weapon_holder_entity).add_child(weapon_entity).id();
+    }
+
+    pub(crate) fn update_position(&mut self,
+        transform: &mut Transform,
+        transform_player: &Transform
+    ) {
+        transform.translation = transform_player.translation;
+    }
+
+    pub(crate) fn shoot(&mut self,
+        cmd: &mut Commands,
+        position: Vec3,
+        direction: Vec3
+    ) {
+        self.weapon_projectile.spawn(cmd, position, direction);
+    }
 }
 
 impl Weapon {
@@ -156,50 +312,11 @@ impl Weapon {
         weapon_type: WeaponType
     ) -> Option<Entity>{
         match weapon_type {
-            WeaponType::Pistol => {
-                let weapon_holder_entity = cmd.spawn((
-                    weapon::WeaponHolder, 
-                    GlobalTransform::default(), 
-                    Transform::default(), 
-                    InheritedVisibility::default(), 
-                    Name::new("WeaponHolder")
-                )).id();
-                
-                let weapon_muzzle_entity = cmd.spawn((
-                    WeaponMuzzle, 
-                    GlobalTransform::default(), 
-                    Transform {
-                        translation: Vec3 {x: 1f32, y: 0f32, z: 0f32},
-                        ..Transform::default()
-                    }, 
-                    Name::new("WeaponMuzzle")
-                )).id();
-                
-                let weapon_component = Weapon { 
-                    weapon_type: WeaponType::Pistol, 
-                    direction: Vec3::X,
-                };
-                
-                let sprite_bundle = SpriteBundle {
-                    transform: Transform {
-                        translation: Vec3 {x: 30f32, y: 0f32, z: 0f32},
-                        rotation: Quat::from_axis_angle(Vec3::Z, Vec2::X.to_angle()),
-                        scale: Vec3 {x: 40f32, y: 10f32, z: 0f32}
-                    },
-                    sprite: Sprite {
-                        color: color_palette::ColorPalette::GRAY,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                };
-            
-                let weapon_entity = cmd.spawn(weapon_component)
-                    .add_child(weapon_muzzle_entity)
-                    .insert(sprite_bundle)
-                    .insert(Name::new("Pistol"))
-                .id();
-
-                return Some(cmd.entity(weapon_holder_entity).add_child(weapon_entity).id());
+            WeaponType::Pistol(weapon) => {
+                return Some(weapon.spawn(cmd));
+            },
+            WeaponType::Machinegun(weapon) => {
+                return Some(weapon.spawn(cmd));
             },
             WeaponType::None => {return None;},
         }
@@ -207,9 +324,17 @@ impl Weapon {
 
     pub(crate) fn update_position(&mut self,
         transform: &mut Transform,
-        transform_player: &mut Transform
+        transform_player: &Transform
     ) {
-        transform.translation = transform_player.translation;
+        match &mut self.weapon_type {
+            WeaponType::Pistol(weapon) => {
+                weapon.update_position(transform, transform_player);
+            },
+            WeaponType::Machinegun(weapon) => {
+                weapon.update_position(transform, transform_player);
+            },
+            _ => {}
+        }
     }
 
     pub(crate) fn update_rotation(&mut self,
@@ -224,16 +349,25 @@ impl Weapon {
             let angle = direction.to_angle();
 
             self.direction = Vec3 {x: direction.x, y: direction.y, z: 0f32};
+
             weapon_transform.rotation = Quat::from_axis_angle(Vec3::Z, angle);
         }
     }
 
-    fn make_shoot(&mut self,
+    pub(crate) fn make_shoot(&mut self,
         cmd: &mut Commands,
         position: Vec3,
         direction: Vec3
     ) {
-        PistolAmmunition::init(cmd, position, direction);
+        match &mut self.weapon_type {
+            WeaponType::Pistol(weapon) => {
+                weapon.shoot(cmd, position, direction);
+            },
+            WeaponType::Machinegun(weapon) => {
+                weapon.shoot(cmd, position, direction);
+            },
+            _ => {}
+        }
     }
 
     fn take_reload() {
@@ -249,7 +383,7 @@ pub(crate) fn plugin(
 
 fn update_ammunition_position(
     mut cmd: Commands,
-    mut query: Query<(Entity, &mut Transform, &mut WeaponAmmunition)>,
+    mut query: Query<(Entity, &mut Transform, &mut WeaponProjectile)>,
     time: Res<Time>,
 ) {
     for (entity, mut transform, mut damage_object) in &mut query {
@@ -270,15 +404,17 @@ fn update_weapon_position(
 }
 
 fn update_weapon_rotation(
-    mut query_weapon: Query<(&mut Transform, &mut Weapon)>, 
-    mut query_player: Query<&mut Transform, (With<player::PlayerSprite>, Without<Weapon>)>, 
+    mut query_weapon_holder: Query<&mut Transform, With<WeaponHolder>>,
+    mut query_weapon: Query<&mut Weapon>, 
+    query_player: Query<&Transform, (With<player::PlayerSprite>, Without<WeaponHolder>)>, 
     query_player_camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>, 
     window: Query<&Window>
 ) {
     let mut weapon = query_weapon.single_mut();
-    let player = query_player.single_mut();
+    let mut wepon_holder = query_weapon_holder.single_mut();
+    let player = query_player.single();
     let player_camera = query_player_camera.single();
     let win = window.single();
 
-    weapon.1.update_rotation(weapon.0.as_mut(), player.as_ref(), win, player_camera.0, player_camera.1);
+    weapon.update_rotation(wepon_holder.as_mut(), player, win, player_camera.0, player_camera.1);
 }

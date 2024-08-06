@@ -1,5 +1,5 @@
 pub(crate) mod prelude {
-    pub(crate) use super::{Player, PlayerSprite};
+    pub(crate) use super::PlayerSprite;
 }
 
 use crate::prelude::*;
@@ -35,7 +35,13 @@ fn startup(
         rotation: Vec3::ZERO
     }).id();
 
-    let weapon_entity = weapon::Weapon::init(&mut cmd, super::weapon::WeaponType::Pistol).unwrap();
+    let weapon_entity = weapon::Weapon::init(&mut cmd, weapon::WeaponType::Pistol(weapon::Pistol {weapon_projectile: {
+        weapon::WeaponProjectileType::MachinegunProjectile(weapon::MachinegunProjectile {
+            timer_lifetime: Timer::new(Duration::from_secs(2), TimerMode::Once),
+            force: 700f32,
+            direction: Vec3::X
+        })
+    }})).unwrap();
 
     let camera_entity = cmd.spawn(
         Camera2dBundle {
@@ -83,24 +89,24 @@ fn update_position(
     transform.translation += (player.keyboard_direction) * player.speed * time.delta_seconds();
     player.keyboard_direction = Vec3::ZERO;
 
-    if keyboard.pressed(KeyCode::KeyW) { player.keyboard_direction.y = 1f32; }
-    if keyboard.pressed(KeyCode::KeyS) { player.keyboard_direction.y = -1f32; }
-    if keyboard.pressed(KeyCode::KeyD) { player.keyboard_direction.x = 1f32; }
-    if keyboard.pressed(KeyCode::KeyA) { player.keyboard_direction.x = -1f32; }
+    player.keyboard_direction.y = (keyboard.pressed(KeyCode::KeyW) as i32 as f32) - (keyboard.pressed(KeyCode::KeyS) as i32 as f32);
+    player.keyboard_direction.x = keyboard.pressed(KeyCode::KeyD) as i32 as f32 - (keyboard.pressed(KeyCode::KeyA) as i32 as f32);
 } 
 
 fn update_shooting(
     mut cmd: Commands, 
+    mut query_weapon: Query<&mut weapon::Weapon>,
     query_weapon_muzzle: Query<&GlobalTransform, With<weapon::WeaponMuzzle>>,
-    query_weapom: Query<&weapon::Weapon>,
     mouse_button: Res<ButtonInput<MouseButton>>
 ) {
     let weapon_muzzle = query_weapon_muzzle.single();
-    let weapon = query_weapom.single();
+    let mut weapon = query_weapon.single_mut();
 
-    if mouse_button.just_pressed(MouseButton::Right) {  
-        weapon::MachinegunAmmunition::init(&mut cmd, weapon_muzzle.translation(), weapon.direction);
-    } else if mouse_button.just_pressed(MouseButton::Left) {
-        weapon::PistolAmmunition::init(&mut cmd, weapon_muzzle.translation(), weapon.direction);
+    if mouse_button.just_pressed(MouseButton::Left) {  
+        let dir = weapon.direction;
+        weapon.make_shoot(&mut cmd, weapon_muzzle.translation(), dir);
+        //weapon::MachinegunAmmunition::spawn(&mut cmd, weapon_muzzle.translation(), weapon.direction);
+    } else if mouse_button.just_pressed(MouseButton::Right) {
+        //weapon::PistolAmmunition::spawn(&mut cmd, weapon_muzzle.translation(), weapon.direction);
     }
 }
