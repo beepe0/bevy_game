@@ -1,9 +1,6 @@
 pub(crate) mod inspector {
     //pub(crate) use crate::inspector::prelude::*;
 }
-pub(crate) mod bullet {
-    pub(crate) use crate::game::bullet::prelude::*;
-}
 pub(crate) mod player {
     pub(crate) use crate::game::player::prelude::*;
 }
