@@ -35,13 +35,13 @@ fn startup(
         rotation: Vec3::ZERO
     }).id();
 
-    let weapon_entity = weapon::Weapon::init(&mut cmd, weapon::WeaponType::Pistol(weapon::Pistol {weapon_projectile: {
+    let weapon_entity = weapon::Weapon::init(&mut cmd, weapon::WeaponType::Machinegun(weapon::Machinegun {weapon_projectile: {
         weapon::WeaponProjectileType::MachinegunProjectile(weapon::MachinegunProjectile {
             timer_lifetime: Timer::new(Duration::from_secs(2), TimerMode::Once),
             force: 700f32,
             direction: Vec3::X
         })
-    }})).unwrap();
+    }, cooldown: Timer::new(Duration::from_millis(10), TimerMode::Once)})).unwrap();
 
     let camera_entity = cmd.spawn(
         Camera2dBundle {
@@ -96,17 +96,13 @@ fn update_position(
 fn update_shooting(
     mut cmd: Commands, 
     mut query_weapon: Query<&mut weapon::Weapon>,
+    time: Res<Time>,
     query_weapon_muzzle: Query<&GlobalTransform, With<weapon::WeaponMuzzle>>,
     mouse_button: Res<ButtonInput<MouseButton>>
 ) {
     let weapon_muzzle = query_weapon_muzzle.single();
     let mut weapon = query_weapon.single_mut();
 
-    if mouse_button.just_pressed(MouseButton::Left) {  
-        let dir = weapon.direction;
-        weapon.make_shoot(&mut cmd, weapon_muzzle.translation(), dir);
-        //weapon::MachinegunAmmunition::spawn(&mut cmd, weapon_muzzle.translation(), weapon.direction);
-    } else if mouse_button.just_pressed(MouseButton::Right) {
-        //weapon::PistolAmmunition::spawn(&mut cmd, weapon_muzzle.translation(), weapon.direction);
-    }
+    let direction = weapon.direction;
+    weapon.make_shoot(&mut cmd, time.as_ref(), mouse_button.as_ref(), (weapon_muzzle.translation(), direction));
 }

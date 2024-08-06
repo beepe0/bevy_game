@@ -1,5 +1,15 @@
 pub(crate) mod prelude {
-    pub(crate) use super::{Weapon, WeaponType, WeaponProjectileType, WeaponHolder, WeaponMuzzle, Pistol, Machinegun, PistolProjectile, MachinegunProjectile};
+    pub(crate) use super::{
+        Weapon, 
+        WeaponType, 
+        WeaponProjectileType, 
+        WeaponHolder, 
+        WeaponMuzzle, 
+        Pistol, 
+        Machinegun, 
+        PistolProjectile, 
+        MachinegunProjectile
+    };
 }
 
 use crate::prelude::*;
@@ -169,11 +179,13 @@ pub(crate) enum WeaponType {
 #[derive(Reflect)]
 pub(crate) struct Pistol {
     pub(crate) weapon_projectile: WeaponProjectileType,
+    pub(crate) cooldown: Timer
 }
 
 #[derive(Reflect)]
 pub(crate) struct Machinegun { 
     pub(crate) weapon_projectile: WeaponProjectileType,
+    pub(crate) cooldown: Timer,
 }
 
 impl Pistol {
@@ -234,10 +246,18 @@ impl Pistol {
 
     pub(crate) fn shoot(&mut self,
         cmd: &mut Commands,
-        position: Vec3,
-        direction: Vec3
+        time: &Time,
+        mouse_button: &ButtonInput<MouseButton>,
+        transform: (Vec3, Vec3),
     ) {
-        self.weapon_projectile.spawn(cmd, position, direction);
+        self.cooldown.tick(time.delta());
+
+        if mouse_button.just_pressed(MouseButton::Left) {  
+            if self.cooldown.finished() {
+                self.weapon_projectile.spawn(cmd, transform.0, transform.1);
+                self.cooldown.reset();
+            }
+        } 
     }
 }
 
@@ -299,10 +319,18 @@ impl Machinegun {
 
     pub(crate) fn shoot(&mut self,
         cmd: &mut Commands,
-        position: Vec3,
-        direction: Vec3
+        time: &Time,
+        mouse_button: &ButtonInput<MouseButton>,
+        transform: (Vec3, Vec3),
     ) {
-        self.weapon_projectile.spawn(cmd, position, direction);
+        self.cooldown.tick(time.delta());
+
+        if mouse_button.pressed(MouseButton::Left) {  
+            if self.cooldown.finished() {
+                self.weapon_projectile.spawn(cmd, transform.0, transform.1);
+                self.cooldown.reset();
+            }
+        } 
     }
 }
 
@@ -356,15 +384,16 @@ impl Weapon {
 
     pub(crate) fn make_shoot(&mut self,
         cmd: &mut Commands,
-        position: Vec3,
-        direction: Vec3
+        time: &Time,
+        mouse_button: &ButtonInput<MouseButton>,
+        transform: (Vec3, Vec3),
     ) {
         match &mut self.weapon_type {
             WeaponType::Pistol(weapon) => {
-                weapon.shoot(cmd, position, direction);
+                weapon.shoot(cmd, time, mouse_button, transform);
             },
             WeaponType::Machinegun(weapon) => {
-                weapon.shoot(cmd, position, direction);
+                weapon.shoot(cmd, time, mouse_button, transform);
             },
             _ => {}
         }
