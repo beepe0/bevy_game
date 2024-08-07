@@ -123,7 +123,7 @@ impl MachinegunProjectile {
             transform: Transform {
                 translation: position,
                 rotation: Quat::from_axis_angle(Vec3::Z, direction.xy().to_angle()),
-                scale: Vec3 {x: 50f32, y: 10f32, z: 0f32}
+                scale: Vec3 {x: 20f32, y: 7f32, z: 0f32}
             },
             sprite: Sprite {
                 color: color_palette::ColorPalette::RED,
@@ -304,7 +304,7 @@ impl Machinegun {
         let weapon_entity = cmd.spawn(weapon_component)
             .add_child(weapon_muzzle_entity)
             .insert(sprite_bundle)
-            .insert(Name::new("Pistol"))
+            .insert(Name::new("Machinegun"))
         .id();
 
         return cmd.entity(weapon_holder_entity).add_child(weapon_entity).id();
@@ -411,8 +411,8 @@ pub(crate) fn plugin(
 }
 
 fn update_ammunition_position(
-    mut cmd: Commands,
     mut query: Query<(Entity, &mut Transform, &mut WeaponProjectile)>,
+    mut cmd: Commands,
     time: Res<Time>,
 ) {
     for (entity, mut transform, mut damage_object) in &mut query {
@@ -421,8 +421,8 @@ fn update_ammunition_position(
 }
 
 fn update_weapon_position(
-    mut query_weapon_holder: Query<&mut Transform, With<WeaponHolder>>,
     mut query_weapon: Query<&mut Weapon>,
+    mut query_weapon_holder: Query<&mut Transform, With<WeaponHolder>>,
     mut query_player: Query<&mut Transform, (With<player::PlayerSprite>, Without<WeaponHolder>)>
 ) {
     let mut weapon_holder = query_weapon_holder.single_mut();
@@ -433,8 +433,8 @@ fn update_weapon_position(
 }
 
 fn update_weapon_rotation(
-    mut query_weapon_holder: Query<&mut Transform, With<WeaponHolder>>,
     mut query_weapon: Query<&mut Weapon>, 
+    mut query_weapon_holder: Query<&mut Transform, With<WeaponHolder>>,
     query_player: Query<&Transform, (With<player::PlayerSprite>, Without<WeaponHolder>)>, 
     query_player_camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>, 
     window: Query<&Window>

@@ -35,5 +35,9 @@ pub(crate) use bevy::{
         }};
 pub(crate) use bevy_inspector_egui::{
     quick::ResourceInspectorPlugin, 
-    bevy_egui::EguiContext, egui
+    bevy_egui::{
+        EguiContext, 
+        EguiPlugin
+    }, 
+    egui
 };

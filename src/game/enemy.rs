@@ -33,7 +33,7 @@ pub fn plugin(
 ) {
     app.init_resource::<Enemies>();
     app.register_type::<Enemies>();
-    app.add_plugins(ResourceInspectorPlugin::<Enemies>::new());
+    //app.add_plugins(ResourceInspectorPlugin::<Enemies>::new());
     app.add_systems(Update, (update_position, spawning, update_gizmos));
 }
 
