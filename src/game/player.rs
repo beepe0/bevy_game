@@ -115,10 +115,9 @@ fn update_shooting(
     mouse_button: Res<ButtonInput<MouseButton>>,
     time: Res<Time>,
 ) {
-    for weapon_muzzle in query_weapon_muzzle.iter() {
-        let mut weapon = query_weapon.single_mut();
-        let direction = weapon.direction;
+    let mut weapon = query_weapon.single_mut();
+    let weapon_muzzle = query_weapon_muzzle.single();
+    let direction = weapon.direction;
 
-        weapon.make_shoot(&mut cmd, time.as_ref(), mouse_button.as_ref(), (weapon_muzzle.translation(), direction));    
-    }
+    weapon.make_shoot(&mut cmd, time.as_ref(), mouse_button.as_ref(), (weapon_muzzle.translation(), direction));    
 }

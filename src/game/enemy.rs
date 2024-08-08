@@ -38,10 +38,12 @@ pub fn plugin(
 }
 
 pub fn init(
-    mut commands: Commands, mut enemy_ref: ResMut<Enemies>, position: Vec3
+    mut cmd: Commands, 
+    mut enemy_ref: ResMut<Enemies>, 
+    position: Vec3
 ) {
     enemy_ref.current_number += 1;
-    commands
+    cmd
     .spawn(Enemy {is_deinit: false, health: enemy_ref.health})
     .insert(SpriteBundle { transform: Transform { translation: position + Vec3 {x: 30f32, y: 30f32, z: 0f32} / 2f32, scale: Vec3 {x: 30f32, y: 30f32, z: 0f32}, ..Default::default()}, sprite: Sprite { color: color_palette::ColorPalette::GRAY, ..Default::default()}, ..Default::default()});
 }
