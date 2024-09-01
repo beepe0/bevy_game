@@ -2,8 +2,6 @@ pub(crate) mod prelude {
     //pub(super) use super::;
 }
 
-use bevy_inspector_egui::bevy_egui::EguiInput;
-
 use crate::prelude::*;
 
 #[derive(Reflect, Resource)]
@@ -34,13 +32,13 @@ impl Default for ConsoleConfiguration {
 #[derive(Reflect, Default, Resource)]
 struct ConsoleState {
     is_open: bool,
-    context_buffer: String,
+    content_buffer: String,
     input_buffer: String,
 }
 
 impl ConsoleState {
     fn submit_input_field(&mut self) {
-        self.context_buffer.push_str(&format!("> {}\n", self.input_buffer.as_str()));
+        self.content_buffer.push_str(&format!("> {}\n", self.input_buffer.as_str()));
         self.input_buffer.clear();
     }
 }
@@ -86,7 +84,7 @@ fn update_console_ui(
         .default_size(console_resource.default_size.to_array())
         .show(egui_context.get_mut(), |ui| {
             ui.style_mut().visuals.extreme_bg_color = egui::Color32::BLACK;
-
+            
             ui.vertical(|ui| {
                 let scroll_height = ui.available_height() - 150f32;
 
@@ -97,7 +95,7 @@ fn update_console_ui(
                     .show(ui, |ui| {
                         ui.vertical(|ui| {
                             ui.style_mut().visuals.override_text_color = Some(egui::Color32::GOLD);
-                            ui.label(console_state.context_buffer.clone());        
+                            ui.label(console_state.content_buffer.clone());        
                         });
                     });
 
